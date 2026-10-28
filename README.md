@@ -1,5 +1,9 @@
 # CareerOS
 
+## [Open your permanent CareerOS home page →](https://github.com/libbyix9-blip/CareerOS/blob/main/HOME.md)
+
+Bookmark that private GitHub page. It remains available while the local application is closed and links directly to your workspace when it is running.
+
 A private career discovery and application tracking workspace. This is a **local Phase 1 MVP**, with real SQLite persistence and a Next.js shell. It is not yet a production-hosted career agent. Gmail, external AI reasoning, and PostgreSQL-backed hosting are not operational. Private multi-résumé uploads and a reusable cover-letter library are implemented.
 
 ## Open the application
@@ -123,3 +127,5 @@ GitHub Pages is static hosting and cannot run this app's Node API, authenticatio
 The page links to the existing workspace at `http://127.0.0.1:3000`. These links reach the app on the computer opening them. They do not provide remote access to your Mac, and the app still needs to be running. Hosting the complete workspace remains a separate backend deployment.
 
 A private Sites project was registered for this home page, but its source-publishing helper is blocked by missing local Git/Xcode Command Line Tools. Its generated origin is not a verified deployment URL. The GitHub Pages workflow attempts the user's previously requested hosting path; GitHub account capabilities and repository Pages permissions determine whether publication is available. Check the completed deployment output before treating a web address as live.
+
+The private rendered `HOME.md` page is the immediate, verified-access route and does not require GitHub Pages. The attempted Pages publication was rejected at site creation with “Resource not accessible by integration.” Its workflow is now manual-only until an owner enables Pages in repository settings. No GitHub Pages URL or Sites deployment is represented as live.
