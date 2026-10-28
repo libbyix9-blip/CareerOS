@@ -19,7 +19,7 @@ The launcher installs dependencies using the committed manifest/lockfile, runs `
 
 Create your owner account in the browser. Use a password of at least 14 characters. Your email is just your local account identifier; no email is sent and no Gmail access is requested. First-run setup is allowed only on the loopback interface and requires a matching request origin and Host header.
 
-After setup, keep Terminal running while using the app. Press Control-C to stop. The database survives process restarts. The default URL is **http://127.0.0.1:3000**; use this exact address, rather than `localhost`, because Host and origin are checked.
+For foreground npm starts, keep Terminal running while using the app and press Control-C to stop. The Finder shortcut now launches a detached background supervisor, so its Terminal window may be closed after it reports that CareerOS is running. The database survives process restarts. The default URL is **http://127.0.0.1:3000**; use this exact address, rather than `localhost`, because Host and origin are checked.
 
 For subsequent starts, when dependencies and the build are already current:
 
@@ -47,7 +47,7 @@ For development: `npm run dev`. A no-framework fallback is available with `npm r
 | Capability | Current state / next step |
 |---|---|
 | Live source refresh in this task environment | Shell DNS is restricted. The adapters are implemented and fixture-tested; this restricted session cannot independently verify live imports. Run the app in your normal Terminal; account setup triggers a first refresh, and manual Refresh is available. Verify source results in Settings. |
-| Gmail | Phase 2: not implemented. No OAuth tokens or messages are accessed or stored. Implement consent, read-only OAuth, encrypted token storage, resumable six-month backfill, grouping, confidence/review, manual merge/split and revocation before enabling. |
+| Gmail | Read-only OAuth, encrypted token storage, six-month backfill, incremental sync, per-role grouping, evidence links, and manual review are implemented and synthetic-tested. Google OAuth credentials and the owner's authorization are still required; no live connection or imported messages are claimed. See `docs/GMAIL.md`. |
 | Résumé files | Implemented locally: multiple PDF/DOCX/TXT uploads; macOS PDFKit text extraction; bounded DOCX parsing; private database BLOB storage; reviewable text and skills; one selected reviewed résumé drives matching. No OCR or automated credential verification. |
 | Generative AI | Not configured or called. The current score and explanations use deterministic, tested preference rules. This is deliberately labeled in the product. |
 | PostgreSQL / Prisma runtime | The original schema and migration are preserved under `prisma/` and have been validated/generated. **The running app uses native SQLite SQL**, not Prisma. A PostgreSQL repository adapter, local data migration, and integration tests are required before switching. No PostgreSQL server was available on this machine. |
@@ -108,7 +108,7 @@ A restart is required after updating server code: stop the existing process with
 
 ## Simple local refresh
 
-Double-click **Start CareerOS.command** in the project folder. It recognizes this checkout's existing listener, gracefully replaces that CareerOS process, starts the current app without a package download/build, and opens your browser once ready. It refuses to stop an unrelated process. Keep its Terminal window running. Server-module edits trigger a restart automatically; client files are read fresh on a normal browser reload. If the managed app is already running, the shortcut simply reopens it.
+Double-click **Start CareerOS.command** in the project folder. It recognizes this checkout's existing listener, gracefully replaces that CareerOS process, starts the current app without a package download/build, and opens your browser once ready. It refuses to stop an unrelated process. Its Terminal window may be closed after the running confirmation. Server-module edits trigger a restart automatically; client files are read fresh on a normal browser reload. If the managed app is already running, the shortcut simply reopens it.
 
 UI routes now serve the independent HTML/module entrypoint. Next.js build/hydration chunks are no longer required for the local UI to start, preventing an older production process from hanging after its build files have been replaced. The boot module provides a visible retry/restart message for module failure or excessive startup time, and API calls time out rather than waiting indefinitely. The Next.js shell/build remain available, but the default UI transport intentionally owns its DOM independently.
 
@@ -129,3 +129,11 @@ The page links to the existing workspace at `http://127.0.0.1:3000`. These links
 A private Sites project was registered for this home page, but its source-publishing helper is blocked by missing local Git/Xcode Command Line Tools. Its generated origin is not a verified deployment URL. The GitHub Pages workflow attempts the user's previously requested hosting path; GitHub account capabilities and repository Pages permissions determine whether publication is available. Check the completed deployment output before treating a web address as live.
 
 The private rendered `HOME.md` page is the immediate, verified-access route and does not require GitHub Pages. The attempted Pages publication was rejected at site creation with “Resource not accessible by integration.” Its workflow is now manual-only until an owner enables Pages in repository settings. No GitHub Pages URL or Sites deployment is represented as live.
+
+## Startup repair and refresh on open
+
+`npm start` now runs the stable local Node server directly, without requiring a Next.js build or hydration. The previous framework-specific entrypoint remains available as `npm run start:next`. The Finder shortcut runs the desktop supervisor in the background and writes private startup details to ignored `data/desktop.log`. It waits for a real health response before reporting readiness.
+
+An authenticated browser opening now requests a background discovery refresh via `POST /api/sync` and starts Gmail sync if it is configured and connected. Active work is reused, and refresh attempts within one minute are coalesced to avoid hammering sources. The dashboard polls while either service is running and shows source results. A job refresh does not imply a Gmail import: an unconnected Gmail account remains visibly disconnected. LinkedIn is accessed only through real source links or labeled searches, not unrestricted scraping.
+
+Startup tests execute the real browser module in a synthetic DOM with controlled session/bootstrap responses to verify that both sign-in and the authenticated dashboard render and that sync-on-open is requested. This exercises actual client code but does not replace a browser test. The execution session still cannot start a localhost listener (EPERM); the Finder shortcut must run in the normal Mac session.

@@ -1,5 +1,6 @@
 import {spawn,execFileSync} from 'node:child_process';
-import {watch,realpathSync} from 'node:fs';
+import {watch,realpathSync,mkdirSync,openSync,closeSync,chmodSync} from 'node:fs';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const project=realpathSync(fileURLToPath(new URL('../',import.meta.url)));
@@ -37,4 +38,18 @@ export async function launchDesktop(){
   for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{stopping=true;clearTimeout(debounce);watcher.close();if(child)child.kill(signal);});
   start();
 }
-if(process.argv[1]&&realpathSync(process.argv[1])===fileURLToPath(import.meta.url))launchDesktop().catch(error=>{console.error(error.message);process.exitCode=1;});
+export async function launchInBackground(){
+  process.chdir(project);
+  const dir=join(project,'data');mkdirSync(dir,{recursive:true,mode:0o700});
+  const logPath=join(dir,'desktop.log'),log=openSync(logPath,'a',0o600);chmodSync(logPath,0o600);
+  const child=spawn(process.execPath,['--env-file-if-exists=.env',fileURLToPath(import.meta.url)],{cwd:project,detached:true,stdio:['ignore',log,log],env:process.env});
+  closeSync(log);child.on('error',error=>console.error(`CareerOS launcher failed: ${error.code??'START_ERROR'}`));child.unref();
+  const url=process.env.APP_URL??`http://${process.env.HOST??'127.0.0.1'}:${process.env.PORT??3000}`;
+  for(let attempt=0;attempt<75;attempt++){
+    const status=await health(url);
+    if(status?.ok&&status.app==='CareerOS'&&status.managed){console.log(`CareerOS is running: ${url}\nYou may close this Terminal window. The app continues in the background.`);return;}
+    await new Promise(r=>setTimeout(r,200));
+  }
+  throw new Error(`CareerOS did not start. Startup details are in ${logPath}.`);
+}
+if(process.argv[1]&&realpathSync(process.argv[1])===fileURLToPath(import.meta.url))(process.argv.includes('--background')?launchInBackground():launchDesktop()).catch(error=>{console.error(error.message);process.exitCode=1;});

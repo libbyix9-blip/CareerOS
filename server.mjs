@@ -8,9 +8,10 @@ import {matchJob,blendFeeds} from './lib/matching.mjs';
 import {InputError,validateApplication,validatePreferences,toCSV,string} from './lib/domain.mjs';
 import {currentUser,requireUser,createSession,signIn,hashPassword,sessionCookie,cookieToken,tokenHash} from './lib/auth.mjs';
 import {extractUpload,validateDocumentInput,suggestedSkills,recommendLetters,BUCKETS} from './lib/documents.mjs';
+import {Gmail} from './lib/gmail.mjs';
 
 const root=fileURLToPath(new URL('./public/',import.meta.url));
-const assets=new Map([['/boot.mjs',['boot.mjs','text/javascript; charset=utf-8']],['/app.mjs',['app.mjs','text/javascript; charset=utf-8']],['/library.mjs',['library.mjs','text/javascript; charset=utf-8']],['/styles.css',['styles.css','text/css; charset=utf-8']],['/design.css',['design.css','text/css; charset=utf-8']],['/favicon.svg',['favicon.svg','image/svg+xml']]]);
+const assets=new Map([['/gmail.mjs',['gmail.mjs','text/javascript; charset=utf-8']],['/boot.mjs',['boot.mjs','text/javascript; charset=utf-8']],['/app.mjs',['app.mjs','text/javascript; charset=utf-8']],['/library.mjs',['library.mjs','text/javascript; charset=utf-8']],['/styles.css',['styles.css','text/css; charset=utf-8']],['/design.css',['design.css','text/css; charset=utf-8']],['/favicon.svg',['favicon.svg','image/svg+xml']]]);
 const pages=new Set(['/','/overview','/discover','/wildcards','/saved','/applications','/insights','/profile','/letters','/settings','/login']);
 async function body(req,maxSize=150000){
   if(!String(req.headers['content-type']??'').startsWith('application/json'))throw new InputError('Use a JSON request body.',415);
@@ -19,9 +20,10 @@ async function body(req,maxSize=150000){
 }
 function respond(res,data,status=200,extra={}){res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store',...extra});res.end(JSON.stringify(data));}
 function equalSecret(a,b){return !!a && !!b && Buffer.byteLength(a)===Buffer.byteLength(b) && timingSafeEqual(Buffer.from(a),Buffer.from(b));}
-export function createApp({store=new Store(),host='127.0.0.1',port=3000,appURL=null,secure=false,sources,fetcher,scheduleHours=0,pageHandler=null}={}){
+export function createApp({store=new Store(),host='127.0.0.1',port=3000,appURL=null,secure=false,sources,fetcher,scheduleHours=0,pageHandler=null,gmailEnv=process.env,gmailFetcher=fetch}={}){
   const discovery=new Discovery(store,{sources,fetcher});
   const config={origin:appURL?new URL(appURL).origin:`http://${host}:${port}`};
+  const gmail=new Gmail(store,{origin:config.origin,env:gmailEnv,fetcher:gmailFetcher});
   let timer=null;
   const server=createServer(async(req,res)=>{
     res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','no-referrer');
@@ -60,6 +62,13 @@ export function createApp({store=new Store(),host='127.0.0.1',port=3000,appURL=n
       if(path==='/api/logout' && method==='POST'){
         const token=cookieToken(req);if(token)store.deleteSession(tokenHash(token));return respond(res,{ok:true},200,{'Set-Cookie':sessionCookie('',secure,true)});
       }
+      if(path==='/api/gmail/callback'&&method==='GET'){
+        const state=url.searchParams.get('state'),code=url.searchParams.get('code');
+        const cookie=(req.headers.cookie??'').split(';').map(s=>s.trim()).find(s=>s.startsWith('careeros_gmail_oauth='))?.slice('careeros_gmail_oauth='.length);
+        if(url.searchParams.has('error')||!code)throw new InputError('Gmail authorization was not completed. Start Connect Gmail again.',400);
+        const userId=await gmail.complete(state,code,cookie),token=createSession(store.user(userId),store);
+        res.writeHead(303,{Location:'/settings','Cache-Control':'no-store','Set-Cookie':[sessionCookie(token,secure),`careeros_gmail_oauth=; HttpOnly; SameSite=Lax; Path=/api/gmail/callback; Max-Age=0${secure?'; Secure':''}`]});return res.end();
+      }
       if(path.startsWith('/api/')){
         const user=requireUser(req,store);
         if(path==='/api/bootstrap' && method==='GET'){
@@ -70,8 +79,24 @@ export function createApp({store=new Store(),host='127.0.0.1',port=3000,appURL=n
           return respond(res,{profile:user,jobs:blendFeeds(ranked).map(({description,...j})=>j),applications,
             documents:store.documents(user.id).map(({text,originalText,...d})=>({...d,excerpt:text.slice(0,220)})),buckets:Object.keys(BUCKETS),matchingResume:matchingProfile.resumeEvidence?{id:matchingProfile.resumeEvidence.id,title:matchingProfile.resumeEvidence.title}:null,
             activity:store.activities(user.id),discovery:discovery.status(),schedule:{hours:scheduleHours,requiresRunningProcess:true},
-            integrations:{gmail:{configured:false,implemented:false},resume:{configured:true,implemented:true},ai:{configured:false,engine:'Transparent résumé and preference rules'}},totalIngested:jobs.length});
+            integrations:{gmail:gmail.status(user.id),resume:{configured:true,implemented:true},ai:{configured:false,engine:'Transparent résumé and preference rules'}},gmailReview:gmail.reviews(user.id),totalIngested:jobs.length});
         }
+        if(path==='/api/sync'&&method==='POST'){
+          await body(req);
+          const last=store.sourceRuns()[0];
+          const recentlyAttempted=last&&Date.now()-Date.parse(last.startedAt)<60000;
+          const started=!recentlyAttempted&&discovery.start();
+          gmail.start(user.id);
+          return respond(res,{started:!!started,discovery:discovery.status(),gmail:gmail.status(user.id),reason:recentlyAttempted?'A discovery refresh was attempted within the last minute.':'Refresh requested when opening CareerOS.'},202);
+        }
+        if(path==='/api/gmail/connect'&&method==='POST'){
+          await body(req);const start=gmail.begin(user.id);
+          return respond(res,{authorizationUrl:start.authorizationUrl},200,{'Set-Cookie':`careeros_gmail_oauth=${start.state}; HttpOnly; SameSite=Lax; Path=/api/gmail/callback; Max-Age=600${secure?'; Secure':''}`});
+        }
+        if(path==='/api/gmail/disconnect'&&method==='POST'){await body(req);return respond(res,await gmail.disconnect(user.id));}
+        if(path==='/api/gmail/sync'&&method==='POST'){await body(req);const started=gmail.start(user.id);return respond(res,{started,status:gmail.status(user.id)},202);}
+        const gmailReview=path.match(/^\/api\/gmail\/review\/([a-zA-Z0-9_-]+)$/);
+        if(gmailReview&&method==='POST'){const input=await body(req);return respond(res,{id:gmail.review(user.id,gmailReview[1],input)??null});}
         if(path==='/api/documents/upload'&&method==='POST'){
           if(!store.throttle('uploads:'+user.id,60))throw new InputError('Too many uploads. Please try again in 15 minutes.',429);
           const input=await body(req,7_000_000),document=await extractUpload(input);
@@ -127,10 +152,11 @@ export function createApp({store=new Store(),host='127.0.0.1',port=3000,appURL=n
             res.writeHead(200,{'Content-Type':'text/csv; charset=utf-8','Cache-Control':'no-store','Content-Disposition':'attachment; filename="careeros-applications.csv"'});
             return res.end(toCSV(store.applications(user.id),['company','title','location','appliedAt','source','status','updatedAt','lastResponseAt','contact','summary','notes','url','confidence','evidence']));
           }
-          return respond(res,store.exportUser(user.id),200,{'Content-Disposition':'attachment; filename="careeros-export.json"'});
+          return respond(res,{...store.exportUser(user.id),gmail:gmail.export(user.id)},200,{'Content-Disposition':'attachment; filename="careeros-export.json"'});
         }
         if(path==='/api/account' && method==='DELETE'){
           const data=await body(req);if(data.confirm!==user.email)throw new InputError('Type your account email to confirm deletion.');
+          if(gmail.connection(user.id))await gmail.disconnect(user.id);
           store.deleteUser(user.id);return respond(res,{ok:true},200,{'Set-Cookie':sessionCookie('',secure,true)});
         }
         throw new InputError('This API route is not available.',404);
@@ -158,7 +184,7 @@ export function createApp({store=new Store(),host='127.0.0.1',port=3000,appURL=n
       check();
     }
   });
-  return {server,store,discovery,config,async stop(){if(timer)clearInterval(timer);await discovery.promise;await new Promise(r=>server.close(r));store.close();}};
+  return {server,store,discovery,gmail,config,async stop(){if(timer)clearInterval(timer);await gmail.stop();await discovery.promise;await new Promise(r=>server.close(r));store.close();}};
 }
 if(process.argv[1] && fileURLToPath(import.meta.url)===process.argv[1]){
   const host=process.env.HOST??'127.0.0.1',port=Number(process.env.PORT??3000),secure=process.env.SECURE_COOKIES==='true';

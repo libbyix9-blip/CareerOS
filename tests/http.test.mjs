@@ -14,10 +14,10 @@ test('HTTP handler: setup, authentication, CRUD, origin checks, export, logout a
   await app.server.listeners('request')[0](req,res);return response;
  };
  try{
-  assert.equal((await request('/api/bootstrap')).status,401);
+  assert.equal((await request('/api/bootstrap')).status,401);assert.equal((await request('/api/sync','POST',{})).status,401);
   assert.equal((await request('/api/setup','POST',{email:'owner@example.test',password:'a-long-test-password'},'https://attacker.test')).status,403);
   const setup=await request('/api/setup','POST',{email:'owner@example.test',password:'a-long-test-password'});assert.equal(setup.status,201);assert.match(setup.headers.get('set-cookie'),/HttpOnly/);cookie=setup.headers.get('set-cookie').split(';')[0];
-  assert.equal((await request('/api/bootstrap')).status,200);
+  assert.equal((await request('/api/bootstrap')).status,200);const sync=await request('/api/sync','POST',{reason:'open'});assert.equal(sync.status,202);const syncResult=await sync.json();assert.equal(syncResult.gmail.connected,false);assert.equal(syncResult.gmail.implemented,true);
   const uploaded=await request('/api/documents/upload','POST',{kind:'resume',filename:'candidate.txt',base64:Buffer.from('Test Candidate\nSQL and OSINT research, due diligence and investigations.').toString('base64')});assert.equal(uploaded.status,201);const resumeId=(await uploaded.json()).id;
   assert.equal((await request('/api/documents/'+resumeId+'/primary','POST',{})).status,400);
   const resumeDoc=await (await request('/api/documents/'+resumeId)).json();

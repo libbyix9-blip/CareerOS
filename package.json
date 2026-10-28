@@ -5,10 +5,10 @@
   "type": "module",
   "description": "Private Next.js career intelligence platform with persistent local SQLite storage",
   "scripts": {
-    "start": "node --env-file-if-exists=.env scripts/next-server.mjs",
+    "start": "node --env-file-if-exists=.env server.mjs",
     "dev": "NODE_ENV=development node --env-file-if-exists=.env scripts/next-server.mjs --dev",
     "setup": "node --env-file-if-exists=.env scripts/setup.mjs",
-    "test": "node --test tests/*.test.mjs",
+    "test": "node --experimental-vm-modules --test tests/*.test.mjs",
     "check": "node scripts/check.mjs",
     "db:backup": "node --env-file-if-exists=.env scripts/backup.mjs",
     "build": "next build --webpack",
@@ -18,7 +18,8 @@
     "db:generate": "prisma generate",
     "db:validate": "prisma validate",
     "launch": "node scripts/launch.mjs",
-    "open": "node --env-file-if-exists=.env scripts/desktop.mjs"
+    "open": "node --env-file-if-exists=.env scripts/desktop.mjs --background",
+    "start:next": "node --env-file-if-exists=.env scripts/next-server.mjs"
   },
   "engines": {
     "node": ">=24.0.0"
