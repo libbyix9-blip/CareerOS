@@ -1,0 +1,50 @@
+{
+  "name": "careeros",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Private Next.js career intelligence platform with persistent local SQLite storage",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env scripts/next-server.mjs",
+    "dev": "NODE_ENV=development node --env-file-if-exists=.env scripts/next-server.mjs --dev",
+    "setup": "node --env-file-if-exists=.env scripts/setup.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/check.mjs",
+    "db:backup": "node --env-file-if-exists=.env scripts/backup.mjs",
+    "build": "next build --webpack",
+    "local": "node --env-file-if-exists=.env server.mjs",
+    "typecheck": "tsc --noEmit",
+    "db:init": "node --env-file-if-exists=.env scripts/init-db.mjs",
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "launch": "node scripts/launch.mjs",
+    "open": "node --env-file-if-exists=.env scripts/desktop.mjs"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "@radix-ui/react-dialog": "^1.3.1",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "lucide-react": "^1.62.0",
+    "next": "^16.4.3",
+    "prisma": "^6.19.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "zod": "^4.6.7"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "prisma@6.19.3": true,
+    "@prisma/engines@6.19.3": true
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.1"
+  }
+}

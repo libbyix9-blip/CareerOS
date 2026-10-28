@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+model User {
+  id String @id @default(cuid())
+  email String @unique
+  preferences Json
+  createdAt DateTime @default(now())
+  sessions Session[]
+  applications Application[]
+  jobStates JobState[]
+}
+model Session {
+  id String @id
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+model LoginAttempt {
+  id String @id
+  count Int @default(0)
+  resetAt DateTime
+}
+model Job {
+  id String @id @default(cuid())
+  fingerprint String @unique
+  company String
+  title String
+  location String
+  arrangement String
+  salaryMin Int?
+  salaryMax Int?
+  currency String?
+  description String
+  qualifications String?
+  url String
+  postedAt DateTime?
+  discoveredAt DateTime @default(now())
+  verifiedAt DateTime
+  source String
+  sourceKey String
+  sourceJobId String
+  availability String @default("Open")
+  states JobState[]
+  @@index([sourceKey, sourceJobId])
+}
+model JobState {
+  id String @id @default(cuid())
+  userId String
+  jobId String
+  saved Boolean @default(false)
+  dismissed Boolean @default(false)
+  feedback String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  updatedAt DateTime @updatedAt
+  @@unique([userId, jobId])
+}
+model Application {
+  id String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company String
+  title String
+  location String @default("")
+  appliedAt DateTime
+  source String @default("Manual")
+  status String @default("Applied")
+  updatedAt DateTime @default(now())
+  contact String @default("")
+  summary String @default("")
+  notes String @default("")
+  url String @default("")
+  jobId String?
+  manualOverride Boolean @default(true)
+  needsReview Boolean @default(false)
+  confidence Float?
+  evidence Json @default("[]")
+  @@index([userId, appliedAt])
+  @@unique([userId, jobId])
+}
+model SourceRun {
+  id String @id @default(cuid())
+  sourceKey String
+  startedAt DateTime @default(now())
+  finishedAt DateTime?
+  success Boolean @default(false)
+  count Int @default(0)
+  error String?
+  @@index([sourceKey, startedAt])
+}
+model RefreshLock {
+  id String @id
+  expiresAt DateTime
+}

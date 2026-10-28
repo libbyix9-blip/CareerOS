@@ -1,0 +1,14 @@
+CREATE TABLE "User" ("id" TEXT PRIMARY KEY,"email" TEXT NOT NULL UNIQUE,"preferences" JSONB NOT NULL,"createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE "Session" ("id" TEXT PRIMARY KEY,"userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,"expiresAt" TIMESTAMP(3) NOT NULL);
+CREATE INDEX "Session_expiresAt_idx" ON "Session"("expiresAt");
+CREATE TABLE "LoginAttempt" ("id" TEXT PRIMARY KEY,"count" INTEGER NOT NULL DEFAULT 0,"resetAt" TIMESTAMP(3) NOT NULL);
+CREATE TABLE "Job" ("id" TEXT PRIMARY KEY,"fingerprint" TEXT NOT NULL UNIQUE,"company" TEXT NOT NULL,"title" TEXT NOT NULL,"location" TEXT NOT NULL,"arrangement" TEXT NOT NULL,"salaryMin" INTEGER,"salaryMax" INTEGER,"currency" TEXT,"description" TEXT NOT NULL,"qualifications" TEXT,"url" TEXT NOT NULL,"postedAt" TIMESTAMP(3),"discoveredAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"verifiedAt" TIMESTAMP(3) NOT NULL,"source" TEXT NOT NULL,"sourceKey" TEXT NOT NULL,"sourceJobId" TEXT NOT NULL,"availability" TEXT NOT NULL DEFAULT 'Open');
+CREATE INDEX "Job_sourceKey_sourceJobId_idx" ON "Job"("sourceKey","sourceJobId");
+CREATE TABLE "JobState" ("id" TEXT PRIMARY KEY,"userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,"jobId" TEXT NOT NULL REFERENCES "Job"("id") ON DELETE CASCADE,"saved" BOOLEAN NOT NULL DEFAULT false,"dismissed" BOOLEAN NOT NULL DEFAULT false,"feedback" TEXT,"updatedAt" TIMESTAMP(3) NOT NULL);
+CREATE UNIQUE INDEX "JobState_userId_jobId_key" ON "JobState"("userId","jobId");
+CREATE TABLE "Application" ("id" TEXT PRIMARY KEY,"userId" TEXT NOT NULL REFERENCES "User"("id") ON DELETE CASCADE,"company" TEXT NOT NULL,"title" TEXT NOT NULL,"location" TEXT NOT NULL DEFAULT '',"appliedAt" TIMESTAMP(3) NOT NULL,"source" TEXT NOT NULL DEFAULT 'Manual',"status" TEXT NOT NULL DEFAULT 'Applied',"updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"contact" TEXT NOT NULL DEFAULT '',"summary" TEXT NOT NULL DEFAULT '',"notes" TEXT NOT NULL DEFAULT '',"url" TEXT NOT NULL DEFAULT '',"jobId" TEXT,"manualOverride" BOOLEAN NOT NULL DEFAULT true,"needsReview" BOOLEAN NOT NULL DEFAULT false,"confidence" DOUBLE PRECISION,"evidence" JSONB NOT NULL DEFAULT '[]');
+CREATE INDEX "Application_userId_appliedAt_idx" ON "Application"("userId","appliedAt");
+CREATE UNIQUE INDEX "Application_userId_jobId_key" ON "Application"("userId","jobId");
+CREATE TABLE "SourceRun" ("id" TEXT PRIMARY KEY,"sourceKey" TEXT NOT NULL,"startedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,"finishedAt" TIMESTAMP(3),"success" BOOLEAN NOT NULL DEFAULT false,"count" INTEGER NOT NULL DEFAULT 0,"error" TEXT);
+CREATE INDEX "SourceRun_sourceKey_startedAt_idx" ON "SourceRun"("sourceKey","startedAt");
+CREATE TABLE "RefreshLock" ("id" TEXT PRIMARY KEY,"expiresAt" TIMESTAMP(3) NOT NULL);
