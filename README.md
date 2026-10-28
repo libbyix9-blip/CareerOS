@@ -47,7 +47,7 @@ For development: `npm run dev`. A no-framework fallback is available with `npm r
 | Résumé files | Implemented locally: multiple PDF/DOCX/TXT uploads; macOS PDFKit text extraction; bounded DOCX parsing; private database BLOB storage; reviewable text and skills; one selected reviewed résumé drives matching. No OCR or automated credential verification. |
 | Generative AI | Not configured or called. The current score and explanations use deterministic, tested preference rules. This is deliberately labeled in the product. |
 | PostgreSQL / Prisma runtime | The original schema and migration are preserved under `prisma/` and have been validated/generated. **The running app uses native SQLite SQL**, not Prisma. A PostgreSQL repository adapter, local data migration, and integration tests are required before switching. No PostgreSQL server was available on this machine. |
-| GitHub | No repository created. Git on this Mac requires Xcode Command Line Tools. Repository creation/push also requires authorization and an accessible account. |
+| GitHub | Private source repository: https://github.com/libbyix9-blip/CareerOS. Source is uploaded through the connected GitHub tools; local Git still requires Xcode Command Line Tools. Personal files and database records are excluded. |
 | Vercel | No deployment created. This app currently requires a long-running Node process and writable persistent disk. Do not deploy its SQLite file to ephemeral Vercel storage. Complete PostgreSQL and background-job adapters first. `docs/vercel.reference.json` is an archived plan, not active deployment configuration. |
 | Browser/mobile QA | Layouts and behavior implemented; a running browser session is still required for visual and end-to-end verification. |
 
@@ -112,6 +112,6 @@ The current execution session cannot open localhost listeners. Run the shortcut 
 
 ## GitHub and hosting
 
-A private GitHub repository can store the source and run `.github/workflows/checks.yml`. The connected GitHub app supports existing-repository changes but does not expose new repository creation. Create a private `careeros` repository in your GitHub account, then the connected tools can populate it. Do not upload `data/`, `backups/`, `.env`, résumé/letter files, `node_modules/`, or `.next/`.
+A private GitHub repository can store the source and run `.github/workflows/checks.yml`. Source is stored in the private [CareerOS repository](https://github.com/libbyix9-blip/CareerOS). Completed changes use focused commits with explicit validation, as recorded in `AGENTS.md`. Do not upload `data/`, `backups/`, `.env`, résumé/letter files, `node_modules/`, or `.next/`.
 
 GitHub Pages is static hosting and cannot run this app's Node API, authentication, private document storage or SQLite database. An eventual public URL requires a server-backed host with persistent storage or the planned PostgreSQL adapter. No repository or hosted deployment is claimed until verified from the provider.
