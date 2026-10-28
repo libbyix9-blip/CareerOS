@@ -1,0 +1,34 @@
+name: Publish CareerOS home page
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sites/careeros-home/dist/**'
+      - '.github/workflows/home-page.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: careeros-pages
+  cancel-in-progress: true
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload home page only
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: sites/careeros-home/dist
+      - name: Publish home page
+        id: deployment
+        uses: actions/deploy-pages@v4

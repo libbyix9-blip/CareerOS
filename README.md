@@ -115,3 +115,11 @@ The current execution session cannot open localhost listeners. Run the shortcut 
 A private GitHub repository can store the source and run `.github/workflows/checks.yml`. Source is stored in the private [CareerOS repository](https://github.com/libbyix9-blip/CareerOS). Completed changes use focused commits with explicit validation, as recorded in `AGENTS.md`. Do not upload `data/`, `backups/`, `.env`, résumé/letter files, `node_modules/`, or `.next/`.
 
 GitHub Pages is static hosting and cannot run this app's Node API, authentication, private document storage or SQLite database. An eventual public URL requires a server-backed host with persistent storage or the planned PostgreSQL adapter. No repository or hosted deployment is claimed until verified from the provider.
+
+## Permanent home page
+
+`CareerOS Home.html` is a self-contained page you can open directly from Finder, even while the application server is stopped. The same page lives at `sites/careeros-home/dist/index.html` and has a narrowly scoped GitHub Pages publication workflow. Only this generic page is eligible for the Pages artifact: no database, uploaded documents, private exports, or app secrets are included.
+
+The page links to the existing workspace at `http://127.0.0.1:3000`. These links reach the app on the computer opening them. They do not provide remote access to your Mac, and the app still needs to be running. Hosting the complete workspace remains a separate backend deployment.
+
+A private Sites project was registered for this home page, but its source-publishing helper is blocked by missing local Git/Xcode Command Line Tools. Its generated origin is not a verified deployment URL. The GitHub Pages workflow attempts the user's previously requested hosting path; GitHub account capabilities and repository Pages permissions determine whether publication is available. Check the completed deployment output before treating a web address as live.
