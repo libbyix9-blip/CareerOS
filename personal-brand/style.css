@@ -120,10 +120,8 @@ header nav a:hover{color:var(--accent);transform:translateY(-1px)}
   .links{gap:16px}
   .links a{min-height:44px;display:inline-flex;align-items:center}
   .button{padding:12px 16px}
-  .site-footer{padding:42px 22px calc(104px + env(safe-area-inset-bottom))}
-  .social-bar{bottom:max(12px,env(safe-area-inset-bottom));padding:6px 10px}
-  .social-bar{position:fixed;top:auto;right:auto;left:50%;display:flex;flex-direction:row;align-items:center;justify-content:center;width:max-content;gap:2px}
-  .social-bar a{width:42px;height:42px}
+  .site-footer{padding:42px 22px calc(42px + env(safe-area-inset-bottom))}
+  .social-bar{display:none}
 }
 @media(max-width:380px){
   .section{padding-right:19px;padding-left:19px}
